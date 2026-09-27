@@ -1,1 +1,64 @@
+<!DOCTYPE mylang>
+<program>
 
+    <!-- SICHERHEIT: PIN für Zugriff -->
+    <security>
+        <pin>HALLOWELTICHBINSCHLAU123456789</pin>
+    </security>
+
+    <!-- 1. Wichtige Absender abfragen -->
+    <action type="ask_important_senders">
+        <prompt>Bitte trage alle wichtigen Mail-Absender ein.</prompt>
+    </action>
+
+    <!-- 2. Unwichtige Mails löschen -->
+    <action type="delete_unimportant_mails">
+        <rule>alle nicht eingetragenen Absender → Papierkorb</rule>
+    </action>
+
+    <!-- 3. ALLE Dateien des PCs scannen -->
+    <action type="scan_files">
+        <drives>auto</drives>          <!-- C:, D:, E: ... automatisch -->
+        <depth>all</depth>             <!-- rekursiv alle Unterordner -->
+        <store_as>file_index.json</store_as> <!-- komplette Dateiliste -->
+    </action>
+
+    <!-- 4. Webserver starten (für Handy/Render) -->
+    <action type="start_webserver">
+        <port>8080</port>
+        <api>
+
+            <!-- komplette Dateiliste -->
+            <endpoint path="/list_files" source="file_index.json" />
+
+            <!-- Ordnerinhalt anzeigen -->
+            <endpoint path="/list_folder">
+                <input>folder_path</input>
+                <mode>children</mode>
+            </endpoint>
+
+            <!-- Datei herunterladen -->
+            <endpoint path="/download_file">
+                <input>file_path</input>
+                <mode>download</mode>
+            </endpoint>
+
+        </api>
+    </action>
+
+    <!-- 5. Tunnel öffnen (ngrok/cloudflared) -->
+    <action type="open_tunnel">
+        <target>http://localhost:8080</target>
+        <store_as>tunnel_url.txt</store_as>
+    </action>
+
+    <!-- 6. Tunnel-URL an Render schicken -->
+    <action type="notify_render">
+        <render_server>https://DEIN-RENDER-SERVER.onrender.com</render_server>
+        <endpoint>/api/tunnel</endpoint>
+        <payload>
+            <pc_api_from>tunnel_url.txt</pc_api_from>
+        </payload>
+    </action>
+
+</program>
