@@ -18,7 +18,7 @@ jobs:
           echo "Dummy-Datei" > build/app.txt
 
       - name: ZIP erstellen
-        run: powershell Compress-Archive -Path build\* -DestinationPath build\app.zip
+        run: powershell Compress-Archive -Path build\* -DestinationPath build\app.zip -Force
 
       - name: WiX installieren
         run: choco install wixtoolset -y
