@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="*" 
-           Name="Mail sortierer" 
+           Name="MeinProgramm" 
            Language="1031" 
            Version="1.0.0.0" 
-           Manufacturer="Unbekannt"
+           Manufacturer="Richard"
            UpgradeCode="92b8ca8f-e4d9-427f-9783-01f7677e9756">
-           
+
     <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
     <MediaTemplate />
 
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFilesFolder">
-        <Directory Id="INSTALLFOLDER" Name="Mail sortierer">
+        <Directory Id="INSTALLFOLDER" Name="MeinProgramm">
           <Component Id="AppFiles" Guid="f3c1a7d2-9b4e-4c8f-9f1a-2e6b8d4c1f22">
             <File Source="build\app.zip" />
           </Component>
