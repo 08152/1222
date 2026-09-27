@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="*" 
-           Name="MeinProgramm" 
+           Name="Mail sortieren" 
            Language="1031" 
            Version="1.0.0.0" 
-           Manufacturer="Richard"
+           Manufacturer="Unbekannt"
            UpgradeCode="92b8ca8f-e4d9-427f-9783-01f7677e9756">
 
     <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
