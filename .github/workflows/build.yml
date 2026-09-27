@@ -14,7 +14,7 @@ jobs:
 
       - name: Build vorbereiten
         run: |
-          mkdir build
+          if (!(Test-Path build)) { mkdir build }
           echo "Dummy-Datei" > build/app.txt
 
       - name: ZIP erstellen
