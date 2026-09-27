@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>HTML ZIP → MSI Builder</title>
+  <meta name="description" content="Erstellt aus einer HTML-ZIP ein GitHub-Projekt, das automatisch eine echte Windows-MSI baut.">
+  <style>
+    :root{
+      --bg:#0b0d12;--panel:#121722;--panel2:#0f131c;--line:#263043;
+      --text:#f4f7fb;--muted:#9da8bb;--accent:#6ea8ff;--accent2:#8b5cf6;
+      --ok:#38d39f;--bad:#ff6b81;--shadow:0 24px 70px rgba(0,0,0,.35)
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);background:
+      radial-gradient(circle at 15% 10%,rgba(110,168,255,.15),transparent 28%),
+      radial-gradient(circle at 85% 20%,rgba(139,92,246,.14),transparent 28%),var(--bg)}
+    .wrap{max-width:1050px;margin:0 auto;padding:32px 18px 60px}
+    header{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:28px}
+    .brand{display:flex;align-items:center;gap:13px}
+    .logo{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));font-weight:900;font-size:22px;
+      box-shadow:0 10px 30px rgba(110,168,255,.22)}
+    h1{font-size:clamp(25px,4vw,38px);margin:0;letter-spacing:-.03em}
+    .sub{color:var(--muted);margin:5px 0 0}
+    .badge{border:1px solid var(--line);background:rgba(255,255,255,.03);padding:8px 12px;
+      border-radius:999px;color:#cdd7e8;font-size:13px}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
+    .card{background:linear-gradient(180deg,rgba(18,23,34,.96),rgba(15,19,28,.96));
+      border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:22px}
+    .drop{border:1.5px dashed #3b4860;border-radius:18px;padding:34px 18px;text-align:center;
+      background:rgba(255,255,255,.02);transition:.18s}
+    .drop.drag{border-color:var(--accent);background:rgba(110,168,255,.07)}
+    .drop strong{display:block;font-size:20px;margin-bottom:8px}
+    .drop p{color:var(--muted);margin:0 0 18px}
+    input[type=file]{display:none}
+    .btn{border:0;border-radius:13px;padding:12px 16px;color:white;font-weight:750;cursor:pointer;
+      transition:.16s;box-shadow:0 8px 22px rgba(0,0,0,.18)}
+    .btn:hover{transform:translateY(-1px);filter:brightness(1.05)}
+    .primary{background:linear-gradient(135deg,#4e8cff,#7c4dff)}
+    .secondary{background:#202838;border:1px solid #313d53}
+    .danger{background:#3a1c24;border:1px solid #65303d}
+    .disabled{opacity:.45;pointer-events:none}
+    .fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+    label{display:block;color:#b9c4d6;font-size:13px;margin:0 0 7px}
+    input[type=text],input[type=number]{width:100%;background:#0c1119;color:var(--text);border:1px solid #2d384c;
+      border-radius:12px;padding:12px 13px;outline:none}
+    input:focus{border-color:#5b88d7;box-shadow:0 0 0 3px rgba(91,136,215,.12)}
+    .info{display:flex;flex-direction:column;gap:10px}
+    .row{display:flex;justify-content:space-between;gap:15px;padding:11px 0;border-bottom:1px solid #20293a}
+    .row:last-child{border-bottom:0}
+    .row span:first-child{color:var(--muted)}
+    .row span:last-child{font-weight:750;text-align:right;word-break:break-word}
+    .files{margin-top:15px;max-height:230px;overflow:auto;border:1px solid #222d40;border-radius:14px}
+    .file{padding:9px 11px;border-bottom:1px solid #1b2433;font-size:13px;display:flex;justify-content:space-between;gap:8px}
+    .file:last-child{border-bottom:0}
+    .file .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .file .size{color:var(--muted);flex:0 0 auto}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+    .status{margin-top:16px;border:1px solid #263249;background:#0b111a;border-radius:14px;padding:13px 14px;line-height:1.45}
+    .status.ok{border-color:rgba(56,211,159,.35);background:rgba(56,211,159,.05)}
+    .status.bad{border-color:rgba(255,107,129,.35);background:rgba(255,107,129,.05)}
+    .status small{display:block;color:var(--muted);margin-top:3px}
+    h2{font-size:18px;margin:0 0 12px}
+    .steps{display:grid;gap:10px}
+    .step{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid #242e40;border-radius:14px;background:#0e131c}
+    .num{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-weight:800;
+      background:#1f2a3d;color:#dfe8f6;flex:0 0 auto}
+    code{background:#0b1119;padding:2px 6px;border-radius:6px;color:#c7d8ff}
+    .note{margin-top:14px;color:var(--muted);font-size:13px;line-height:1.55}
+    @media(max-width:820px){.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr}header{align-items:flex-start}.badge{display:none}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">MSI</div>
+      <div>
+        <h1>HTML ZIP → MSI Builder</h1>
+        <p class="sub">ZIP auswählen · Installer einstellen · GitHub-Projekt erzeugen</p>
+      </div>
+    </div>
+    <div class="badge">GitHub Pages kompatibel</div>
+  </header>
+
+  <div class="grid">
+    <main class="card">
+      <h2>1. Deine HTML-ZIP</h2>
+      <div id="drop" class="drop">
+        <strong>ZIP hier hineinziehen</strong>
+        <p>oder eine ZIP-Datei auswählen. Alles bleibt beim Erstellen lokal im Browser.</p>
+        <label for="zipInput" class="btn primary">ZIP auswählen</label>
+        <input id="zipInput" type="file" accept=".zip,application/zip">
+      </div>
+
+      <div class="fields">
+        <div>
+          <label for="appName">App-Name</label>
+          <input id="appName" type="text" value="Meine HTML App" maxlength="60">
+        </div>
+        <div>
+          <label for="publisher">Hersteller</label>
+          <input id="publisher" type="text" value="Mein Projekt" maxlength="60">
+        </div>
+        <div>
+          <label for="version">Version</label>
+          <input id="version" type="text" value="1.0.0" maxlength="30">
+        </div>
+        <div>
+          <label for="shortcut">Startmenü-Eintrag</label>
+          <input id="shortcut" type="text" value="Meine HTML App" maxlength="60">
+        </div>
+      </div>
+
+      <div id="status" class="status">
+        Noch keine ZIP ausgewählt.
+        <small>Erwartet wird idealerweise eine <code>index.html</code> plus CSS, JavaScript, Bilder usw.</small>
+      </div>
+
+      <div class="actions">
+        <button id="build" class="btn primary disabled" disabled>GitHub-MSI-Projekt herunterladen</button>
+        <button id="clear" class="btn secondary">Zurücksetzen</button>
+      </div>
+
+      <p class="note">
+        Die Seite baut selbst keine gefälschte oder nur umbenannte <code>.msi</code>. Stattdessen erstellt sie ein
+        Projekt mit deiner Website, einer WiX-Installerdefinition und einem GitHub-Actions-Workflow. GitHub baut daraus
+        die echte Windows-Installer-Datei.
+      </p>
+    </main>
+
+    <aside class="card">
+      <h2>Projektinhalt</h2>
+      <div class="info">
+        <div class="row"><span>ZIP</span><span id="zipName">–</span></div>
+        <div class="row"><span>Dateien</span><span id="fileCount">–</span></div>
+        <div class="row"><span>Index</span><span id="indexName">–</span></div>
+        <div class="row"><span>Gesamtgröße</span><span id="totalSize">–</span></div>
+      </div>
+
+      <div id="fileList" class="files" hidden></div>
+
+      <h2 style="margin-top:22px">Danach auf GitHub</h2>
+      <div class="steps">
+        <div class="step"><div class="num">1</div><div>Heruntergeladene Projekt-ZIP entpacken.</div></div>
+        <div class="step"><div class="num">2</div><div>Alle enthaltenen Dateien in ein GitHub-Repository hochladen.</div></div>
+        <div class="step"><div class="num">3</div><div>Unter <code>Actions</code> den Workflow <b>Build MSI</b> starten.</div></div>
+        <div class="step"><div class="num">4</div><div>Nach erfolgreichem Lauf die <code>.msi</code> unter <code>Artifacts</code> herunterladen.</div></div>
+      </div>
+      <p class="note">Der Workflow verwendet WiX Toolset 5.0.2 und einen Windows-GitHub-Runner.</p>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const $ = id => document.getElementById(id);
+  const state = { zipFile:null, entries:[], indexName:null };
+
+  const esc = value => String(value ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+  function safePath(path) {
+    let p = String(path).replace(/\\/g,"/").replace(/^\/+/,"");
+    const parts = [];
+    for (const raw of p.split("/")) {
+      if (!raw || raw === ".") continue;
+      if (raw === "..") { parts.pop(); continue; }
+      parts.push(raw);
+    }
+    return parts.join("/");
+  }
+
+  function xmlEscape(value) {
+    return String(value)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;")
+      .replace(/'/g,"&apos;");
+  }
+
+  function sanitizeName(value, fallback) {
+    const cleaned = String(value || "")
+      .replace(/[<>:"/\\\\|?*\\x00-\\x1F]/g,"")
+      .trim();
+    return cleaned || fallback;
+  }
+
+  function sanitizeFileBase(value) {
+    return sanitizeName(value,"MyHtmlApp")
+      .replace(/\.+$/,"")
+      .replace(/\\s+/g," ")
+      .replace(/[^a-zA-Z0-9 _.-]/g,"");
+  }
+
+  function version4(value) {
+    const m = String(value || "1.0.0").match(/^\\s*(\\d+)\\.(\\d+)\\.(\\d+)(?:\\.(\\d+))?/);
+    if (!m) return "1.0.0.0";
+    return `${m[1]}.${m[2]}.${m[3]}.${m[4] || "0"}`;
+  }
+
+  function guid() {
+    if (crypto && crypto.randomUUID) return crypto.randomUUID().toUpperCase();
+    const a = crypto.getRandomValues(new Uint8Array(16));
+    a[6]=(a[6]&0x0f)|0x40; a[8]=(a[8]&0x3f)|0x80;
+    const hex=[...a].map(x=>x.toString(16).padStart(2,"0")).join("");
+    return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`.toUpperCase();
+  }
+
+  function fmt(bytes) {
+    if (!Number.isFinite(bytes)) return "–";
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + " KB";
+    if (bytes < 1024*1024*1024) return (bytes/1024/1024).toFixed(2) + " MB";
+    return (bytes/1024/1024/1024).toFixed(2) + " GB";
+  }
+
+  function setStatus(text, type, detail) {
+    const box = $("status");
+    box.className = "status" + (type ? " " + type : "");
+    box.innerHTML = esc(text) + (detail ? `<small>${detail}</small>` : "");
+  }
+
+  function findIndex(entries) {
+    const files = entries.filter(e => !e.dir).map(e => e.path);
+    const exact = files.find(p => p.toLowerCase() === "index.html");
+    if (exact) return exact;
+    const rootHtml = files.find(p => !p.includes("/") && p.toLowerCase().endsWith(".html"));
+    if (rootHtml) return rootHtml;
+    const anyHtml = files.find(p => p.toLowerCase().endsWith(".html"));
+    return anyHtml || null;
+  }
+
+  async function loadZip(file) {
+    state.zipFile = file;
+    const zip = await JSZip.loadAsync(file);
+    const raw = [];
+    for (const [name, obj] of Object.entries(zip.files)) {
+      const safe = safePath(name);
+      if (!safe) continue;
+      raw.push({ path:safe, dir:obj.dir, obj });
+    }
+
+    // Wenn die ZIP nur einen gemeinsamen Top-Level-Ordner enthält, wird dieser entfernt.
+    const files = raw.filter(e=>!e.dir).map(e=>e.path);
+    const firstParts = files.map(p=>p.split("/")[0]).filter(Boolean);
+    const uniqueTop = [...new Set(firstParts)];
+    const canStrip = uniqueTop.length === 1 && files.some(p=>p.includes("/"));
+    const root = canStrip ? uniqueTop[0] : null;
+
+    const entries = raw.map(e => {
+      let p=e.path;
+      if (root && p.startsWith(root+"/")) p=p.slice(root.length+1);
+      if (!p) return null;
+      return {...e,path:p};
+    }).filter(Boolean);
+
+    state.entries=entries;
+    state.indexName=findIndex(entries);
+
+    $("zipName").textContent=file.name;
+    $("fileCount").textContent=String(entries.filter(e=>!e.dir).length);
+    $("indexName").textContent=state.indexName || "nicht gefunden";
+
+    const total=entries.filter(e=>!e.dir).reduce((a,e)=>a+(Number(e.obj._data?.uncompressedSize)||0),0);
+    $("totalSize").textContent=fmt(total);
+
+    const list=$("fileList");
+    const fileEntries=entries.filter(e=>!e.dir).sort((a,b)=>a.path.localeCompare(b.path));
+    list.innerHTML=fileEntries.slice(0,250).map(e =>
+      `<div class="file"><div class="name">${esc(e.path)}</div><div class="size">${esc(fmt(Number(e.obj._data?.uncompressedSize)||0))}</div></div>`
+    ).join("");
+    if(fileEntries.length>250) {
+      list.insertAdjacentHTML("beforeend",`<div class="file"><div class="name">… ${fileEntries.length-250} weitere Dateien</div><div class="size"></div></div>`);
+    }
+    list.hidden=fileEntries.length===0;
+
+    if (!state.indexName) {
+      $("build").disabled=true; $("build").classList.add("disabled");
+      setStatus("ZIP gelesen, aber keine HTML-Datei gefunden.","bad",
+        "Lege mindestens eine .html-Datei hinein, idealerweise index.html.");
+      return;
+    }
+
+    $("build").disabled=false; $("build").classList.remove("disabled");
+    setStatus("ZIP bereit für den MSI-Projektbau.","ok",
+      "Die Dateien werden nicht auf einen Server hochgeladen.");
+  }
+
+  async function createProject() {
+    if (!state.zipFile || !state.indexName) throw new Error("Keine gültige HTML-ZIP ausgewählt.");
+
+    const appName=sanitizeName($("appName").value,"Meine HTML App");
+    const publisher=sanitizeName($("publisher").value,"Mein Projekt");
+    const version=version4($("version").value);
+    const shortcut=sanitizeName($("shortcut").value,appName);
+    const base=sanitizeFileBase(appName);
+    const upgradeCode=guid();
+
+    const out=new JSZip();
+    const siteFolder=out.folder("site");
+    const indexSafe=state.indexName;
+
+    for (const entry of state.entries) {
+      if (entry.dir) continue;
+      // Zusätzliche Sicherheit gegen ungültige Namen im erzeugten Projekt.
+      const p=safePath(entry.path);
+      if (!p) continue;
+      const blob=await entry.obj.async("blob");
+      siteFolder.file(p,blob);
+    }
+
+    // WiX v5/v4 nutzt die gleiche XML-Schema-URL.
+    const wix = `<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="${xmlEscape(appName)}"
+    Manufacturer="${xmlEscape(publisher)}"
+    Version="${xmlEscape(version)}"
+    UpgradeCode="${xmlEscape(upgradeCode)}"
+    Scope="perMachine">
+
+    <MajorUpgrade DowngradeErrorMessage="Eine neuere Version ist bereits installiert." />
+
+    <StandardDirectory Id="ProgramFilesFolder">
+      <Directory Id="INSTALLFOLDER" Name="${xmlEscape(appName)}">
+        <Component Id="MainWebFile">
+          <File Id="MainHTML"
+                Source="site\\${xmlEscape(indexSafe)}"
+                KeyPath="yes" />
+        </Component>
+
+        <Files Include="site\\**">
+          <Exclude Files="site\\${xmlEscape(indexSafe)}" />
+        </Files>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="${xmlEscape(shortcut)}">
+        <Component Id="StartMenuComponent">
+          <Shortcut
+            Id="StartMenuShortcut"
+            Name="${xmlEscape(shortcut)}"
+            Description="${xmlEscape(appName)}"
+            Target="[#MainHTML]"
+            WorkingDirectory="INSTALLFOLDER" />
+          <RemoveFolder Id="RemoveStartMenuFolder" On="uninstall" />
+          <RegistryValue
+            Root="HKCU"
+            Key="Software\\\\${xmlEscape(publisher)}\\\\${xmlEscape(appName)}"
+            Name="installed"
+            Type="integer"
+            Value="1"
+            KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="${xmlEscape(appName)}" Level="1">
+      <ComponentRef Id="MainWebFile" />
+      <ComponentRef Id="StartMenuComponent" />
+    </Feature>
+  </Package>
+</Wix>
+`;
+
+    const wixproj=`<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <OutputName>${xmlEscape(base)}</OutputName>
+    <OutputType>Package</OutputType>
+    <InstallerPlatform>x64</InstallerPlatform>
+  </PropertyGroup>
+</Project>
+`;
+
+    const workflow=`name: Build MSI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: .NET prüfen
+        run: dotnet --info
+
+      - name: WiX Toolset 5.0.2 installieren
+        shell: pwsh
+        run: dotnet tool install --global wix --version 5.0.2
+
+      - name: MSI bauen
+        shell: pwsh
+        run: |
+          wix build -arch x64 -o "${base}.msi" installer.wxs
+
+      - name: MSI als Artifact hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${base}-MSI
+          path: ${base}.msi
+          if-no-files-found: error
+`;
+
+    const readme=`# ${appName} – MSI-Projekt
+
+Dieses Projekt enthält deine HTML-Webseite als Windows-Installer-Paket.
+
+## GitHub
+
+1. Den kompletten Inhalt dieses Projekts in ein GitHub-Repository hochladen.
+2. GitHub → Actions öffnen.
+3. Den Workflow **Build MSI** ausführen.
+4. Nach dem erfolgreichen Lauf unter **Artifacts** das MSI-Artifact herunterladen.
+
+Die installierten Dateien landen standardmäßig unter:
+%ProgramFiles%\\\\${appName}
+
+Der Startmenü-Eintrag öffnet die Hauptdatei:
+${indexSafe}
+`;
+
+    out.file("installer.wxs",wix);
+    out.file(`${base}.wixproj`,wixproj);
+    out.file(".github/workflows/build-msi.yml",workflow);
+    out.file("README.md",readme);
+    out.file(".nojekyll","");
+    out.file("BUILD-INFO.txt",
+`App: ${appName}
+Hersteller: ${publisher}
+Version: ${version}
+Hauptdatei: ${indexSafe}
+WiX: 5.0.2
+Architektur: x64
+UpgradeCode: ${upgradeCode}
+`);
+
+    setStatus("Projekt wird gepackt…","ok","Danach startet der Download automatisch.");
+    const data=await out.generateAsync({type:"blob",compression:"DEFLATE",compressionOptions:{level:6}});
+    const filename=`${base}-MSI-Projekt.zip`;
+    downloadBlob(data,filename);
+    setStatus("Fertig – das MSI-Projekt wurde heruntergeladen.","ok",
+      `Die echte .msi wird anschließend durch den enthaltenen GitHub-Actions-Workflow gebaut.`);
+  }
+
+  function downloadBlob(blob,name) {
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }
+
+  $("zipInput").addEventListener("change",async e=>{
+    const file=e.target.files?.[0];
+    if(!file) return;
+    try{ await loadZip(file); }
+    catch(err){
+      console.error(err);
+      $("build").disabled=true;$("build").classList.add("disabled");
+      setStatus("ZIP konnte nicht gelesen werden.","bad",esc(err.message||String(err)));
+    }
+  });
+
+  $("drop").addEventListener("dragover",e=>{e.preventDefault();$("drop").classList.add("drag")});
+  $("drop").addEventListener("dragleave",()=>$("drop").classList.remove("drag"));
+  $("drop").addEventListener("drop",async e=>{
+    e.preventDefault();$("drop").classList.remove("drag");
+    const file=e.dataTransfer.files?.[0];
+    if(!file) return;
+    if(!/\\.zip$/i.test(file.name)){
+      setStatus("Bitte eine ZIP-Datei auswählen.","bad");return;
+    }
+    try{await loadZip(file)}catch(err){
+      console.error(err);setStatus("ZIP konnte nicht gelesen werden.","bad",esc(err.message||String(err)));
+    }
+  });
+
+  $("build").addEventListener("click",async()=>{
+    const btn=$("build");
+    btn.classList.add("disabled");btn.disabled=true;
+    try{await createProject();}
+    catch(err){
+      console.error(err);
+      setStatus("Projekt konnte nicht erstellt werden.","bad",esc(err.message||String(err)));
+    } finally {
+      btn.classList.remove("disabled");btn.disabled=!state.indexName;
+    }
+  });
+
+  $("clear").addEventListener("click",()=>{
+    state.zipFile=null;state.entries=[];state.indexName=null;
+    $("zipInput").value="";
+    $("zipName").textContent="–";$("fileCount").textContent="–";$("indexName").textContent="–";$("totalSize").textContent="–";
+    $("fileList").hidden=true;$("fileList").innerHTML="";
+    $("build").disabled=true;$("build").classList.add("disabled");
+    setStatus("Noch keine ZIP ausgewählt.","", "Erwartet wird idealerweise eine <code>index.html</code> plus CSS, JavaScript, Bilder usw.");
+  });
+})();
+</script>
+</body>
+</html>
