@@ -1,1 +1,35 @@
-.github/workflows/build.yml
+name: Build MSI
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+
+    steps:
+      - name: Repository holen
+        uses: actions/checkout@v4
+
+      - name: Build vorbereiten
+        run: |
+          mkdir build
+          echo "Dummy-Datei" > build/app.txt
+
+      - name: ZIP erstellen
+        run: powershell Compress-Archive -Path build\* -DestinationPath build\app.zip
+
+      - name: WiX installieren
+        run: choco install wixtoolset -y
+
+      - name: MSI bauen
+        run: |
+          candle.exe installer/installer.wxs -o installer.wixobj
+          light.exe installer.wixobj -o build/MeinProgramm.msi
+
+      - name: MSI hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: msi-installer
+          path: build/*.msi
